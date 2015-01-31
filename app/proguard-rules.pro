@@ -15,3 +15,41 @@
 #-keepclassmembers class fqcn.of.javascript.interface.for.webview {
 #   public *;
 #}
+
+######################################
+# must change to your model class
+######################################
+# models for Gson (class for serialize/deserialize)
+# -keep class com.your.package.id.model.** { *; } # change to your model class
+-keep class com.kyanro.twitterreader.models.** { *; }
+
+# retrolambda
+-dontwarn java.lang.invoke.*
+
+# support v4 v7
+-dontwarn android.support.v4.**
+-keep class android.support.v4.** { *; }
+-keep interface android.support.v4.** { *; }
+-dontwarn android.support.v7.**
+-keep class android.support.v7.** { *; }
+-keep interface android.support.v7.** { *; }
+
+# butter knife
+-dontwarn butterknife.internal.**
+-keep class **$$ViewInjector { *; }
+-keepnames class * { @butterknife.InjectView *;}
+
+# retrofit
+-keep class com.google.gson.** { *; } # for converter
+-dontwarn com.squareup.okhttp.*
+-dontwarn com.google.appengine.api.urlfetch.*
+-dontwarn rx.**
+-dontwarn retrofit.**
+-keepattributes Signature
+-keepattributes *Annotation*
+-keep class org.apache.http.** { *; }
+-keep interface com.squareup.okhttp.** { *; }
+-keep class retrofit.** { *; }
+-keepclasseswithmembers class * {
+    @retrofit.http.* <methods>;
+}
