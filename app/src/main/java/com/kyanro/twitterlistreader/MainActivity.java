@@ -1,25 +1,41 @@
 package com.kyanro.twitterlistreader;
 
 import android.app.Activity;
-import android.support.v7.app.ActionBarActivity;
-import android.support.v7.app.ActionBar;
+import android.content.Intent;
+import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
-import android.content.Context;
-import android.os.Build;
-import android.os.Bundle;
-import android.view.Gravity;
+import android.support.v4.widget.DrawerLayout;
+import android.support.v7.app.ActionBar;
+import android.support.v7.app.ActionBarActivity;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.support.v4.widget.DrawerLayout;
-import android.widget.ArrayAdapter;
-import android.widget.TextView;
+import android.widget.Toast;
+
 import com.twitter.sdk.android.Twitter;
+import com.twitter.sdk.android.core.Callback;
+import com.twitter.sdk.android.core.Result;
+import com.twitter.sdk.android.core.Session;
+import com.twitter.sdk.android.core.TwitterApiClient;
 import com.twitter.sdk.android.core.TwitterAuthConfig;
+import com.twitter.sdk.android.core.TwitterException;
+import com.twitter.sdk.android.core.TwitterSession;
+import com.twitter.sdk.android.core.identity.TwitterLoginButton;
+import com.twitter.sdk.android.core.models.Tweet;
+
+import java.util.List;
+
+import butterknife.ButterKnife;
+import butterknife.InjectView;
 import io.fabric.sdk.android.Fabric;
+import retrofit.http.GET;
+import retrofit.http.Query;
+import rx.Observable;
+import rx.Subscriber;
 
 
 public class MainActivity extends ActionBarActivity
@@ -39,12 +55,58 @@ public class MainActivity extends ActionBarActivity
      */
     private CharSequence mTitle;
 
+    // butter knife
+    @InjectView(R.id.twitter_login_button)
+    TwitterLoginButton mTwitterLoginButton;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         TwitterAuthConfig authConfig = new TwitterAuthConfig(TWITTER_KEY, TWITTER_SECRET);
         Fabric.with(this, new Twitter(authConfig));
         setContentView(R.layout.activity_main);
+        ButterKnife.inject(this);
+
+
+        Twitter.getSessionManager().clearActiveSession();
+        TwitterSession session = Twitter.getSessionManager().getActiveSession();
+        Log.d("mylog", "session == null?" + (session == null));
+
+        mTwitterLoginButton.setCallback(new Callback<TwitterSession>() {
+            @Override
+            public void success(Result<TwitterSession> twitterSessionResult) {
+                TwitterSession session = Twitter.getSessionManager().getActiveSession();
+                Log.d("mylog", "session == null?" + (session == null));
+                Toast.makeText(MainActivity.this, twitterSessionResult.data.getUserName(), Toast.LENGTH_LONG).show();
+                Log.d("mylog", "name::" + twitterSessionResult.data.getUserName());
+
+                MyTwitterService service = new MyTwitterApiClient(session).getMyTwitterService();
+                service.show(twitterSessionResult.data.getUserId(), 3)
+                        .flatMap(Observable::from)
+                        .subscribe(new Subscriber<Tweet>() {
+                            @Override
+                            public void onCompleted() {
+                                Log.d("mylog", "complete");
+                            }
+
+                            @Override
+                            public void onError(Throwable e) {
+                                Log.d("mylog", "error:" + e.getMessage());
+                            }
+
+                            @Override
+                            public void onNext(Tweet tweet) {
+                                Log.d("mylog", "tweet" + tweet.text);
+                            }
+                        });
+            }
+
+            @Override
+            public void failure(TwitterException e) {
+                Log.d("mylog", "error:" + e.getLocalizedMessage());
+
+            }
+        });
 
         mNavigationDrawerFragment = (NavigationDrawerFragment)
                 getSupportFragmentManager().findFragmentById(R.id.navigation_drawer);
@@ -54,6 +116,16 @@ public class MainActivity extends ActionBarActivity
         mNavigationDrawerFragment.setUp(
                 R.id.navigation_drawer,
                 (DrawerLayout) findViewById(R.id.drawer_layout));
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        mTwitterLoginButton.onActivityResult(requestCode, resultCode, data);
+        TwitterSession session = Twitter.getSessionManager().getActiveSession();
+        Log.d("mylog", "session == null?" + (session == null));
+        Log.d("mylog", "requestCode:" + requestCode);
+
     }
 
     @Override
@@ -77,6 +149,21 @@ public class MainActivity extends ActionBarActivity
                 mTitle = getString(R.string.title_section3);
                 break;
         }
+    }
+
+    private static class MyTwitterApiClient extends TwitterApiClient {
+        private MyTwitterApiClient(Session session) {
+            super(session);
+        }
+
+        public MyTwitterService getMyTwitterService() {
+            return getService(MyTwitterService.class);
+        }
+    }
+
+    private static interface MyTwitterService {
+        @GET("/1.1/statuses/user_timeline.json")
+        public Observable<List<Tweet>> show(@Query("user_id") Long user_id, @Query("count") Integer count);
     }
 
     public void restoreActionBar() {
