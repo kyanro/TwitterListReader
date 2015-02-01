@@ -1,8 +1,10 @@
 package com.kyanro.twitterlistreader.activities;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.widget.DrawerLayout;
@@ -14,6 +16,10 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
+import android.widget.BaseAdapter;
+import android.widget.ListView;
+import android.widget.TextView;
 
 import com.kyanro.twitterlistreader.BuildConfig;
 import com.kyanro.twitterlistreader.MainActivity;
@@ -26,9 +32,11 @@ import com.twitter.sdk.android.core.TwitterAuthConfig;
 import com.twitter.sdk.android.core.TwitterSession;
 import com.twitter.sdk.android.core.models.Tweet;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import butterknife.ButterKnife;
+import butterknife.InjectView;
 import io.fabric.sdk.android.Fabric;
 import retrofit.http.GET;
 import retrofit.http.Query;
@@ -53,21 +61,29 @@ public class TwitterContentsActivity extends ActionBarActivity
      */
     private CharSequence mTitle;
 
+    @NonNull
+    List<Tweet> mTweets = new ArrayList<>();
+    TweetAdapter mTweetAdapter;
+    
+    // butter knife
+    @InjectView(R.id.tweet_listview)
+    ListView mTweetListView;
+    
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        TwitterAuthConfig authConfig = new TwitterAuthConfig(TWITTER_KEY, TWITTER_SECRET);
-        Fabric.with(this, new Twitter(authConfig));
         setContentView(R.layout.activity_twitter_contents);
         ButterKnife.inject(this);
 
         // ログインしていなかったらログイン画面へ飛ばす
         TwitterSession session = Twitter.getSessionManager().getActiveSession();
         if (session == null) {
-            startActivity(new Intent(this, MainActivity.class));
-            finish();
+            startLoginActivity();
             return;
         }
+
+        mTweetAdapter = new TweetAdapter(this, 0, mTweets);
+        mTweetListView.setAdapter(mTweetAdapter);
         
         MyTwitterService service = new MyTwitterApiClient(session).getMyTwitterService();
         service.show(session.getUserId(), 3)
@@ -85,6 +101,7 @@ public class TwitterContentsActivity extends ActionBarActivity
 
                     @Override
                     public void onNext(Tweet tweet) {
+                        mTweetAdapter.add(tweet);
                         Log.d("mylog", "tweet" + tweet.text);
                     }
                 });
@@ -97,6 +114,21 @@ public class TwitterContentsActivity extends ActionBarActivity
         mNavigationDrawerFragment.setUp(
                 R.id.navigation_drawer,
                 (DrawerLayout) findViewById(R.id.drawer_layout));
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        TwitterSession session = Twitter.getSessionManager().getActiveSession();
+        if (session == null) {
+            startLoginActivity();
+            return;
+        }
+    }
+
+    private void startLoginActivity() {
+        startActivity(new Intent(this, MainActivity.class));
+        finish();
     }
 
     @Override
@@ -213,4 +245,17 @@ public class TwitterContentsActivity extends ActionBarActivity
         }
     }
 
+    private static class TweetAdapter extends ArrayAdapter<Tweet> {
+        public TweetAdapter(Context context, int resource, List<Tweet> tweets) {
+            super(context, resource, tweets);
+        }
+
+        @Override
+        public View getView(int position, View convertView, ViewGroup parent) {
+            TextView tv = new TextView(getContext());
+            tv.setText(getItem(position).text);
+            return tv;
+        }
+    }
+    
 }
