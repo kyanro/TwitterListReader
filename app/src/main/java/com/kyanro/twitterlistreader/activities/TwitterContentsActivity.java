@@ -17,9 +17,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
-import android.widget.BaseAdapter;
 import android.widget.ListView;
-import android.widget.TextView;
 
 import com.kyanro.twitterlistreader.BuildConfig;
 import com.kyanro.twitterlistreader.MainActivity;
@@ -28,20 +26,20 @@ import com.kyanro.twitterlistreader.R;
 import com.twitter.sdk.android.Twitter;
 import com.twitter.sdk.android.core.Session;
 import com.twitter.sdk.android.core.TwitterApiClient;
-import com.twitter.sdk.android.core.TwitterAuthConfig;
 import com.twitter.sdk.android.core.TwitterSession;
 import com.twitter.sdk.android.core.models.Tweet;
+import com.twitter.sdk.android.tweetui.CompactTweetView;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import butterknife.ButterKnife;
 import butterknife.InjectView;
-import io.fabric.sdk.android.Fabric;
 import retrofit.http.GET;
 import retrofit.http.Query;
 import rx.Observable;
 import rx.Subscriber;
+import rx.android.schedulers.AndroidSchedulers;
 
 
 public class TwitterContentsActivity extends ActionBarActivity
@@ -64,11 +62,11 @@ public class TwitterContentsActivity extends ActionBarActivity
     @NonNull
     List<Tweet> mTweets = new ArrayList<>();
     TweetAdapter mTweetAdapter;
-    
+
     // butter knife
     @InjectView(R.id.tweet_listview)
     ListView mTweetListView;
-    
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -84,10 +82,11 @@ public class TwitterContentsActivity extends ActionBarActivity
 
         mTweetAdapter = new TweetAdapter(this, 0, mTweets);
         mTweetListView.setAdapter(mTweetAdapter);
-        
+
         MyTwitterService service = new MyTwitterApiClient(session).getMyTwitterService();
         service.show(session.getUserId(), 3)
                 .flatMap(Observable::from)
+                .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Subscriber<Tweet>() {
                     @Override
                     public void onCompleted() {
@@ -252,10 +251,11 @@ public class TwitterContentsActivity extends ActionBarActivity
 
         @Override
         public View getView(int position, View convertView, ViewGroup parent) {
-            TextView tv = new TextView(getContext());
-            tv.setText(getItem(position).text);
-            return tv;
+            // 毎回ビューを作るので、遅いようなら独自実装する・・・？まぁこのままでいいか。
+            Tweet tweet = getItem(position);
+            Log.d("mylog", "tweet:" + tweet.text);
+            return new CompactTweetView(getContext(), tweet);
         }
     }
-    
+
 }
