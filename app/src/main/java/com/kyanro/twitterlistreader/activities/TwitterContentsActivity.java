@@ -23,6 +23,7 @@ import com.kyanro.twitterlistreader.BuildConfig;
 import com.kyanro.twitterlistreader.MainActivity;
 import com.kyanro.twitterlistreader.NavigationDrawerFragment;
 import com.kyanro.twitterlistreader.R;
+import com.kyanro.twitterlistreader.models.TwitterList;
 import com.twitter.sdk.android.Twitter;
 import com.twitter.sdk.android.core.Session;
 import com.twitter.sdk.android.core.TwitterApiClient;
@@ -82,7 +83,7 @@ public class TwitterContentsActivity extends ActionBarActivity
 
         mTweetAdapter = new TweetAdapter(this, 0, mTweets);
         mTweetListView.setAdapter(mTweetAdapter);
-
+        
         MyTwitterService service = new MyTwitterApiClient(session).getMyTwitterService();
         service.show(session.getUserId(), 3)
                 .flatMap(Observable::from)
@@ -102,6 +103,27 @@ public class TwitterContentsActivity extends ActionBarActivity
                     public void onNext(Tweet tweet) {
                         mTweetAdapter.add(tweet);
                         Log.d("mylog", "tweet" + tweet.text);
+                    }
+                });
+        
+        service.list(session.getUserId())
+                .flatMap(Observable::from)
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Subscriber<TwitterList>() {
+                    @Override
+                    public void onCompleted() {
+                        Log.d("mylog", "list completed");
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+                        Log.d("mylog", "list error:" + e.getMessage());
+                    }
+
+                    @Override
+                    public void onNext(TwitterList twitterList) {
+                        Log.d("mylog", "list name:" + twitterList.name);
+                        Log.d("mylog", "list name:" + twitterList.member_count);
                     }
                 });
 
@@ -153,6 +175,7 @@ public class TwitterContentsActivity extends ActionBarActivity
         }
     }
 
+    /** このアプリでよく使うApi用のサービス */
     private static class MyTwitterApiClient extends TwitterApiClient {
         private MyTwitterApiClient(Session session) {
             super(session);
@@ -166,6 +189,9 @@ public class TwitterContentsActivity extends ActionBarActivity
     private static interface MyTwitterService {
         @GET("/1.1/statuses/user_timeline.json")
         public Observable<List<Tweet>> show(@Query("user_id") Long user_id, @Query("count") Integer count);
+        
+        @GET("/1.1/lists/list.json")
+        public Observable<List<TwitterList>> list(@Query("user_id") Long user_id);
     }
 
     public void restoreActionBar() {
