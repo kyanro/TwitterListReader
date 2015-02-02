@@ -1,44 +1,28 @@
 package com.kyanro.twitterlistreader.activities;
 
 import android.app.Activity;
-import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.ActionBarActivity;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ArrayAdapter;
-import android.widget.ListView;
 
 import com.kyanro.twitterlistreader.BuildConfig;
 import com.kyanro.twitterlistreader.MainActivity;
 import com.kyanro.twitterlistreader.NavigationDrawerFragment;
 import com.kyanro.twitterlistreader.R;
-import com.kyanro.twitterlistreader.models.TwitterList;
-import com.kyanro.twitterlistreader.network.service.TwitterReaderApiSingleton;
-import com.kyanro.twitterlistreader.network.service.TwitterReaderApiSingleton.TwitterReaderApiService;
+import com.kyanro.twitterlistreader.fragments.TwitterListViewerFragment;
 import com.twitter.sdk.android.Twitter;
 import com.twitter.sdk.android.core.TwitterSession;
-import com.twitter.sdk.android.core.models.Tweet;
-import com.twitter.sdk.android.tweetui.CompactTweetView;
-
-import java.util.ArrayList;
-import java.util.List;
 
 import butterknife.ButterKnife;
-import butterknife.InjectView;
-import rx.Observable;
-import rx.Subscriber;
-import rx.android.schedulers.AndroidSchedulers;
 
 
 public class TwitterContentsActivity extends ActionBarActivity
@@ -58,14 +42,6 @@ public class TwitterContentsActivity extends ActionBarActivity
      */
     private CharSequence mTitle;
 
-    @NonNull
-    List<Tweet> mTweets = new ArrayList<>();
-    TweetAdapter mTweetAdapter;
-
-    // butter knife
-    @InjectView(R.id.tweet_listview)
-    ListView mTweetListView;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -79,51 +55,10 @@ public class TwitterContentsActivity extends ActionBarActivity
             return;
         }
 
-        mTweetAdapter = new TweetAdapter(this, 0, mTweets);
-        mTweetListView.setAdapter(mTweetAdapter);
-
-        TwitterReaderApiService service = TwitterReaderApiSingleton.getTwitterReaderApiService(session);
-        service.show(session.getUserId(), 3)
-                .flatMap(Observable::from)
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Subscriber<Tweet>() {
-                    @Override
-                    public void onCompleted() {
-                        Log.d("mylog", "complete");
-                    }
-
-                    @Override
-                    public void onError(Throwable e) {
-                        Log.d("mylog", "error:" + e.getMessage());
-                    }
-
-                    @Override
-                    public void onNext(Tweet tweet) {
-                        mTweetAdapter.add(tweet);
-                        Log.d("mylog", "tweet" + tweet.text);
-                    }
-                });
-
-        service.list(session.getUserId())
-                .flatMap(Observable::from)
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Subscriber<TwitterList>() {
-                    @Override
-                    public void onCompleted() {
-                        Log.d("mylog", "list completed");
-                    }
-
-                    @Override
-                    public void onError(Throwable e) {
-                        Log.d("mylog", "list error:" + e.getMessage());
-                    }
-
-                    @Override
-                    public void onNext(TwitterList twitterList) {
-                        Log.d("mylog", "list name:" + twitterList.name);
-                        Log.d("mylog", "list name:" + twitterList.member_count);
-                    }
-                });
+        getSupportFragmentManager()
+                .beginTransaction()
+                .replace(R.id.container, TwitterListViewerFragment.newInstance("test"))
+                .commit();
 
         mNavigationDrawerFragment = (NavigationDrawerFragment)
                 getSupportFragmentManager().findFragmentById(R.id.navigation_drawer);
@@ -248,19 +183,4 @@ public class TwitterContentsActivity extends ActionBarActivity
                     getArguments().getInt(ARG_SECTION_NUMBER));
         }
     }
-
-    private static class TweetAdapter extends ArrayAdapter<Tweet> {
-        public TweetAdapter(Context context, int resource, List<Tweet> tweets) {
-            super(context, resource, tweets);
-        }
-
-        @Override
-        public View getView(int position, View convertView, ViewGroup parent) {
-            // 毎回ビューを作るので、遅いようなら独自実装する・・・？まぁこのままでいいか。
-            Tweet tweet = getItem(position);
-            Log.d("mylog", "tweet:" + tweet.text);
-            return new CompactTweetView(getContext(), tweet);
-        }
-    }
-
 }
