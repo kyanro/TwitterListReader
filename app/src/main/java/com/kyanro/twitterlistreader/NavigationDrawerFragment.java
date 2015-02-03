@@ -1,10 +1,12 @@
 package com.kyanro.twitterlistreader;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.support.annotation.NonNull;
 import android.support.v4.app.ActionBarDrawerToggle;
 import android.support.v4.app.Fragment;
 import android.support.v4.view.GravityCompat;
@@ -20,10 +22,16 @@ import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
+import android.widget.TextView;
 import android.widget.Toast;
+
+import com.kyanro.twitterlistreader.models.TwitterList;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import butterknife.ButterKnife;
+import butterknife.InjectView;
 
 /**
  * Fragment used for managing interactions for and presentation of a navigation drawer.
@@ -60,9 +68,13 @@ public class NavigationDrawerFragment extends Fragment {
     private int mCurrentSelectedPosition = 0;
     private boolean mFromSavedInstanceState;
     private boolean mUserLearnedDrawer;
+    private ArrayAdapter<TwitterList> mDrawerListAdapter;
 
     public NavigationDrawerFragment() {
     }
+
+    @NonNull
+    List<TwitterList> mTwitterLists = new ArrayList<>();
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -86,7 +98,7 @@ public class NavigationDrawerFragment extends Fragment {
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
         // Indicate that this fragment would like to influence the set of actions in the action bar.
-        setHasOptionsMenu(true);
+        //setHasOptionsMenu(true);
     }
 
     @Override
@@ -101,28 +113,50 @@ public class NavigationDrawerFragment extends Fragment {
             }
         });
 
-        Bundle args = getArguments();
-
-        List<String> menus;
-        if (args != null && args.containsKey("menus")) {
-            menus = args.getStringArrayList("menus");
-        } else {
-            menus = new ArrayList<String>() {
-                {
-                    add(getString(R.string.title_section1));
-                    add(getString(R.string.title_section2));
-                    add(getString(R.string.title_section3));
-                }
-            };
-        }
-        mDrawerListView.setAdapter(new ArrayAdapter<>(
+        mDrawerListAdapter = new TwitterListAdapter(
                 getActionBar().getThemedContext(),
                 android.R.layout.simple_list_item_activated_1,
-                android.R.id.text1,
-                menus
-        ));
+                mTwitterLists
+        );
+        mDrawerListView.setAdapter(mDrawerListAdapter);
         mDrawerListView.setItemChecked(mCurrentSelectedPosition, true);
         return mDrawerListView;
+    }
+
+    static class TwitterListAdapter extends ArrayAdapter<TwitterList> {
+        private List<TwitterList> lists;
+        private int resource;
+
+        public TwitterListAdapter(Context context, int resource, List<TwitterList> lists) {
+            super(context, resource, lists);
+            this.resource = resource;
+            this.lists = lists;
+        }
+
+        @Override
+        public View getView(int position, View convertView, ViewGroup parent) {
+            ViewHolder holder;
+            if (convertView == null) {
+                LayoutInflater inflater = LayoutInflater.from(getContext());
+                convertView = inflater.inflate(resource, parent, false);
+                holder = new ViewHolder(convertView);
+                convertView.setTag(holder);
+            } else {
+                holder = (ViewHolder) convertView.getTag();
+            }
+            holder.name.setText(lists.get(position).name);
+
+            return convertView;
+        }
+
+        static class ViewHolder {
+            @InjectView(android.R.id.text1)
+            TextView name;
+
+            ViewHolder(View v) {
+                ButterKnife.inject(this, v);
+            }
+        }
     }
 
     public boolean isDrawerOpen() {
@@ -143,9 +177,9 @@ public class NavigationDrawerFragment extends Fragment {
         mDrawerLayout.setDrawerShadow(R.drawable.drawer_shadow, GravityCompat.START);
         // set up the drawer's list view with items and click listener
 
-        ActionBar actionBar = getActionBar();
-        actionBar.setDisplayHomeAsUpEnabled(true);
-        actionBar.setHomeButtonEnabled(true);
+        //ActionBar actionBar = getActionBar();
+        //actionBar.setDisplayHomeAsUpEnabled(true);
+        //actionBar.setHomeButtonEnabled(true);
 
         // ActionBarDrawerToggle ties together the the proper interactions
         // between the navigation drawer and the action bar app icon.
@@ -201,6 +235,12 @@ public class NavigationDrawerFragment extends Fragment {
         });
 
         mDrawerLayout.setDrawerListener(mDrawerToggle);
+    }
+
+    public void update(List<TwitterList> lists) {
+        mTwitterLists.clear();
+        mTwitterLists.addAll(lists);
+        mDrawerListAdapter.notifyDataSetChanged();
     }
 
     private void selectItem(int position) {

@@ -14,7 +14,6 @@ import android.widget.ArrayAdapter;
 import android.widget.ListView;
 
 import com.kyanro.twitterlistreader.R;
-import com.kyanro.twitterlistreader.models.TwitterList;
 import com.kyanro.twitterlistreader.network.service.TwitterReaderApiSingleton;
 import com.kyanro.twitterlistreader.network.service.TwitterReaderApiSingleton.TwitterReaderApiService;
 import com.twitter.sdk.android.Twitter;
@@ -42,6 +41,7 @@ import rx.android.schedulers.AndroidSchedulers;
 public class TwitterListViewerFragment extends Fragment {
     // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
     private static final String ARG_LIST_ID = "list_id";
+    public static final int TWEET_COUNT_PER_PAGE = 20;
 
     // TODO: Rename and change types of parameters
     private String mListId;
@@ -116,7 +116,7 @@ public class TwitterListViewerFragment extends Fragment {
         mTweetListView.setAdapter(mTweetAdapter);
 
         TwitterReaderApiService service = TwitterReaderApiSingleton.getTwitterReaderApiService(session);
-        service.show(session.getUserId(), 3)
+        service.show(session.getUserId(), TWEET_COUNT_PER_PAGE)
                 .flatMap(Observable::from)
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Subscriber<Tweet>() {
@@ -136,29 +136,6 @@ public class TwitterListViewerFragment extends Fragment {
                         Log.d("mylog", "tweet" + tweet.text);
                     }
                 });
-
-        service.list(session.getUserId())
-                .flatMap(Observable::from)
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Subscriber<TwitterList>() {
-                    @Override
-                    public void onCompleted() {
-                        Log.d("mylog", "list completed");
-                    }
-
-                    @Override
-                    public void onError(Throwable e) {
-                        Log.d("mylog", "list error:" + e.getMessage());
-                    }
-
-                    @Override
-                    public void onNext(TwitterList twitterList) {
-                        Log.d("mylog", "list name:" + twitterList.name);
-                        Log.d("mylog", "list name:" + twitterList.member_count);
-                    }
-                });
-
-
     }
 
     @Override

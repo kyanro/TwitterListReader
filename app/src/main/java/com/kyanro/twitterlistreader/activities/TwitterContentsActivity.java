@@ -3,34 +3,39 @@ package com.kyanro.twitterlistreader.activities;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.ActionBarActivity;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 
-import com.kyanro.twitterlistreader.BuildConfig;
 import com.kyanro.twitterlistreader.MainActivity;
 import com.kyanro.twitterlistreader.NavigationDrawerFragment;
 import com.kyanro.twitterlistreader.R;
 import com.kyanro.twitterlistreader.fragments.TwitterListViewerFragment;
+import com.kyanro.twitterlistreader.models.TwitterList;
+import com.kyanro.twitterlistreader.network.service.TwitterReaderApiSingleton;
+import com.kyanro.twitterlistreader.network.service.TwitterReaderApiSingleton.TwitterReaderApiService;
 import com.twitter.sdk.android.Twitter;
 import com.twitter.sdk.android.core.TwitterSession;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import butterknife.ButterKnife;
+import rx.Subscriber;
+import rx.android.schedulers.AndroidSchedulers;
 
 
 public class TwitterContentsActivity extends ActionBarActivity
         implements NavigationDrawerFragment.NavigationDrawerCallbacks {
-
-    // Note: Your consumer key and secret should be obfuscated in your source code before shipping.
-    private static final String TWITTER_KEY = BuildConfig.TWITTER_KEY;
-    private static final String TWITTER_SECRET = BuildConfig.TWITTER_SECRET;
 
     /**
      * Fragment managing the behaviors, interactions and presentation of the navigation drawer.
@@ -41,6 +46,9 @@ public class TwitterContentsActivity extends ActionBarActivity
      * Used to store the last screen title. For use in {@link #restoreActionBar()}.
      */
     private CharSequence mTitle;
+
+    @NonNull
+    private List<TwitterList> mTwitterLists = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -54,6 +62,7 @@ public class TwitterContentsActivity extends ActionBarActivity
             startLoginActivity();
             return;
         }
+        TwitterReaderApiService service = TwitterReaderApiSingleton.getTwitterReaderApiService(session);
 
         getSupportFragmentManager()
                 .beginTransaction()
@@ -68,6 +77,29 @@ public class TwitterContentsActivity extends ActionBarActivity
         mNavigationDrawerFragment.setUp(
                 R.id.navigation_drawer,
                 (DrawerLayout) findViewById(R.id.drawer_layout));
+
+        // update drawer list. TODO: cache 機能つける
+        service.list(session.getUserId())
+                .take(1)
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Subscriber<List<TwitterList>>() {
+                    @Override
+                    public void onCompleted() {
+                        Log.d("mylog", "list completed");
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+                        Log.d("mylog", "service.list error:" + e.getMessage());
+                    }
+
+                    @Override
+                    public void onNext(List<TwitterList> twitterLists) {
+                        mTwitterLists.addAll(twitterLists);
+                        mNavigationDrawerFragment.update(mTwitterLists);
+                    }
+                });
+
     }
 
     @Override
@@ -95,17 +127,14 @@ public class TwitterContentsActivity extends ActionBarActivity
     }
 
     public void onSectionAttached(int number) {
-        switch (number) {
-            case 1:
-                mTitle = getString(R.string.title_section1);
-                break;
-            case 2:
-                mTitle = getString(R.string.title_section2);
-                break;
-            case 3:
-                mTitle = getString(R.string.title_section3);
-                break;
+        if (mTwitterLists.size() == 0) {
+            return;
         }
+        if (number >= mTwitterLists.size()) {
+            return;
+        }
+
+        mTitle = mTwitterLists.get(number).name;
     }
 
     public void restoreActionBar() {
