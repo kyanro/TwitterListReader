@@ -1,8 +1,9 @@
 # TODO
-+ [ ] show drawer navigation icon
++ [x] show drawer navigation icon
 + [x] setup my twitter list to drawer fragment listview 
-    + cache my twitter list
-        + update cache
+    + [ ] cache my twitter list
+        + [ ] update cache
++ [ ] hide actionbar on scroll
 + [ ] add swipe refresh
 + [ ] add reload on bottom(use Subject?)
 + [ ] add ad
