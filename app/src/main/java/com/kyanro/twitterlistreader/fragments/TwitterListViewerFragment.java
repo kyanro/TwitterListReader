@@ -2,6 +2,7 @@ package com.kyanro.twitterlistreader.fragments;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
@@ -14,6 +15,7 @@ import android.widget.ArrayAdapter;
 import android.widget.ListView;
 
 import com.kyanro.twitterlistreader.R;
+import com.kyanro.twitterlistreader.activities.TwitterLoginActivity;
 import com.kyanro.twitterlistreader.network.service.TwitterReaderApiSingleton;
 import com.kyanro.twitterlistreader.network.service.TwitterReaderApiSingleton.TwitterReaderApiService;
 import com.twitter.sdk.android.Twitter;
@@ -92,28 +94,15 @@ public class TwitterListViewerFragment extends Fragment {
         // Inflate the layout for this fragment
         View view = inflater.inflate(R.layout.fragment_twitter_list_viewer, container, false);
         ButterKnife.inject(this, view);
-        return view;
-    }
-
-    // TODO: Rename method, update argument and hook method into UI event
-    public void onButtonPressed(Uri uri) {
-        if (mListener != null) {
-            mListener.onFragmentInteraction(uri);
-        }
-    }
-
-    @Override
-    public void onResume() {
-        super.onResume();
-
-        // ログインしていなかったら何もしない TODO: どうするのがいいか。。。
-        TwitterSession session = Twitter.getSessionManager().getActiveSession();
-        if (session == null) {
-            return;
-        }
 
         mTweetAdapter = new TweetAdapter(getActivity(), 0, mTweets);
         mTweetListView.setAdapter(mTweetAdapter);
+
+        TwitterSession session = Twitter.getSessionManager().getActiveSession();
+        if (session == null) {
+            getActivity().startActivity(new Intent(getActivity(), TwitterLoginActivity.class));
+            return null;
+        }
 
         TwitterReaderApiService service = TwitterReaderApiSingleton.getTwitterReaderApiService(session);
         service.show(session.getUserId(), TWEET_COUNT_PER_PAGE)
@@ -136,6 +125,25 @@ public class TwitterListViewerFragment extends Fragment {
                         Log.d("mylog", "tweet" + tweet.text);
                     }
                 });
+        return view;
+    }
+
+    // TODO: Rename method, update argument and hook method into UI event
+    public void onButtonPressed(Uri uri) {
+        if (mListener != null) {
+            mListener.onFragmentInteraction(uri);
+        }
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+
+        // ログインしていなかったらとりあえず路銀画面に飛ばす
+        TwitterSession session = Twitter.getSessionManager().getActiveSession();
+        if (session == null) {
+            getActivity().startActivity(new Intent(getActivity(), TwitterLoginActivity.class));
+        }
     }
 
     @Override
