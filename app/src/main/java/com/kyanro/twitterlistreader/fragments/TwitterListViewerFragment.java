@@ -50,6 +50,7 @@ public class TwitterListViewerFragment extends Fragment {
     private String mParam2;
 
     private OnFragmentInteractionListener mListener;
+    private Activity mActivity;
 
     /**
      * Use this factory method to create a new instance of
@@ -95,12 +96,12 @@ public class TwitterListViewerFragment extends Fragment {
         View view = inflater.inflate(R.layout.fragment_twitter_list_viewer, container, false);
         ButterKnife.inject(this, view);
 
-        mTweetAdapter = new TweetAdapter(getActivity(), 0, mTweets);
+        mTweetAdapter = new TweetAdapter(mActivity, 0, mTweets);
         mTweetListView.setAdapter(mTweetAdapter);
 
         TwitterSession session = Twitter.getSessionManager().getActiveSession();
         if (session == null) {
-            getActivity().startActivity(new Intent(getActivity(), TwitterLoginActivity.class));
+            mActivity.startActivity(new Intent(mActivity, TwitterLoginActivity.class));
             return null;
         }
 
@@ -142,13 +143,14 @@ public class TwitterListViewerFragment extends Fragment {
         // ログインしていなかったらとりあえず路銀画面に飛ばす
         TwitterSession session = Twitter.getSessionManager().getActiveSession();
         if (session == null) {
-            getActivity().startActivity(new Intent(getActivity(), TwitterLoginActivity.class));
+            mActivity.startActivity(new Intent(mActivity, TwitterLoginActivity.class));
         }
     }
 
     @Override
     public void onAttach(Activity activity) {
         super.onAttach(activity);
+        mActivity = activity;
         try {
             mListener = (OnFragmentInteractionListener) activity;
         } catch (ClassCastException e) {
