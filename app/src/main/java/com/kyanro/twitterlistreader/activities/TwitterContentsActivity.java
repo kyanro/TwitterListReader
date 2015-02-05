@@ -20,6 +20,7 @@ import com.kyanro.twitterlistreader.MainActivity;
 import com.kyanro.twitterlistreader.NavigationDrawerFragment;
 import com.kyanro.twitterlistreader.R;
 import com.kyanro.twitterlistreader.fragments.TwitterListViewerFragment;
+import com.kyanro.twitterlistreader.models.Tweet;
 import com.kyanro.twitterlistreader.models.TwitterList;
 import com.kyanro.twitterlistreader.network.service.TwitterReaderApiSingleton;
 import com.kyanro.twitterlistreader.network.service.TwitterReaderApiSingleton.TwitterReaderApiService;
@@ -64,10 +65,7 @@ public class TwitterContentsActivity extends ActionBarActivity
         }
         TwitterReaderApiService service = TwitterReaderApiSingleton.getTwitterReaderApiService(session);
 
-        getSupportFragmentManager()
-                .beginTransaction()
-                .replace(R.id.container, TwitterListViewerFragment.newInstance("test"))
-                .commit();
+        setDefaultFragment(session);
 
         mNavigationDrawerFragment = (NavigationDrawerFragment)
                 getSupportFragmentManager().findFragmentById(R.id.navigation_drawer);
@@ -99,6 +97,34 @@ public class TwitterContentsActivity extends ActionBarActivity
                         mNavigationDrawerFragment.update(mTwitterLists);
                     }
                 });
+
+    }
+
+    private void setDefaultFragment(@NonNull TwitterSession session) {
+        TwitterReaderApiService service = TwitterReaderApiSingleton.getTwitterReaderApiService(session);
+        service.show(session.getUserId(), TwitterListViewerFragment.TWEET_COUNT_PER_PAGE)
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Subscriber<List<Tweet>>() {
+                    @Override
+                    public void onCompleted() {
+                        Log.d("mylog", "complete");
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+                        Log.d("mylog", "error:" + e.getMessage());
+                    }
+
+                    @Override
+                    public void onNext(List<Tweet> tweets) {
+                        Log.d("mylog", "onNext in contents");
+                        getSupportFragmentManager()
+                                .beginTransaction()
+                                .replace(R.id.container, TwitterListViewerFragment.newInstance(tweets))
+                                .commit();
+                    }
+                });
+
 
     }
 

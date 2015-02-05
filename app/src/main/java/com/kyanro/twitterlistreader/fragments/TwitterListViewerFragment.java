@@ -16,11 +16,9 @@ import android.widget.ListView;
 
 import com.kyanro.twitterlistreader.R;
 import com.kyanro.twitterlistreader.activities.TwitterLoginActivity;
-import com.kyanro.twitterlistreader.network.service.TwitterReaderApiSingleton;
-import com.kyanro.twitterlistreader.network.service.TwitterReaderApiSingleton.TwitterReaderApiService;
+import com.kyanro.twitterlistreader.models.Tweet;
 import com.twitter.sdk.android.Twitter;
 import com.twitter.sdk.android.core.TwitterSession;
-import com.twitter.sdk.android.core.models.Tweet;
 import com.twitter.sdk.android.tweetui.CompactTweetView;
 
 import java.util.ArrayList;
@@ -28,9 +26,6 @@ import java.util.List;
 
 import butterknife.ButterKnife;
 import butterknife.InjectView;
-import rx.Observable;
-import rx.Subscriber;
-import rx.android.schedulers.AndroidSchedulers;
 
 /**
  * A simple {@link Fragment} subclass.
@@ -44,6 +39,7 @@ public class TwitterListViewerFragment extends Fragment {
     // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
     private static final String ARG_LIST_ID = "list_id";
     public static final int TWEET_COUNT_PER_PAGE = 20;
+    public static final String TWEETS = "TWEETS";
 
     // TODO: Rename and change types of parameters
     private String mListId;
@@ -56,15 +52,15 @@ public class TwitterListViewerFragment extends Fragment {
      * Use this factory method to create a new instance of
      * this fragment using the provided parameters.
      *
-     * @param list_id list_id
+     * @param tweets 表示したい tweet のリスト
      * @return A new instance of fragment TwitterListViewerFragment.
      */
     // TODO: 引数確認
-    public static TwitterListViewerFragment newInstance(String list_id) {
+    public static TwitterListViewerFragment newInstance(List<Tweet> tweets) {
         TwitterListViewerFragment fragment = new TwitterListViewerFragment();
-        Bundle args = new Bundle();
-        args.putString(ARG_LIST_ID, list_id);
-        fragment.setArguments(args);
+        Bundle b = new Bundle();
+        b.putSerializable(TwitterListViewerFragment.TWEETS, new ArrayList<>(tweets));
+        fragment.setArguments(b);
         return fragment;
     }
 
@@ -105,27 +101,12 @@ public class TwitterListViewerFragment extends Fragment {
             return null;
         }
 
-        TwitterReaderApiService service = TwitterReaderApiSingleton.getTwitterReaderApiService(session);
-        service.show(session.getUserId(), TWEET_COUNT_PER_PAGE)
-                .flatMap(Observable::from)
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Subscriber<Tweet>() {
-                    @Override
-                    public void onCompleted() {
-                        Log.d("mylog", "complete");
-                    }
-
-                    @Override
-                    public void onError(Throwable e) {
-                        Log.d("mylog", "error:" + e.getMessage());
-                    }
-
-                    @Override
-                    public void onNext(Tweet tweet) {
-                        mTweetAdapter.add(tweet);
-                        Log.d("mylog", "tweet" + tweet.text);
-                    }
-                });
+        Bundle args = getArguments();
+        if (args != null && args.containsKey(TWEETS)) {
+            //noinspection unchecked
+            List<Tweet> tweets = (List<Tweet>) args.getSerializable(TWEETS);
+            mTweetAdapter.addAll(tweets);
+        }
         return view;
     }
 
