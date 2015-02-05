@@ -1,9 +1,9 @@
 package com.kyanro.twitterlistreader.network.service;
 
+import com.kyanro.twitterlistreader.models.Tweet;
 import com.kyanro.twitterlistreader.models.TwitterList;
 import com.twitter.sdk.android.core.Session;
 import com.twitter.sdk.android.core.TwitterApiClient;
-import com.twitter.sdk.android.core.models.Tweet;
 
 import java.util.List;
 
