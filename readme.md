@@ -7,7 +7,7 @@
 + [ ] add swipe refresh
 + [ ] add reload on bottom(use Subject?)
 + [ ] add ad
-+ [ ] change v4 drawer toggle to v7 drawer toggle
++ [x] change v4 drawer toggle to v7 drawer toggle
 + [ ] add 'read later'
 + [ ] logout or switch account
 + [ ] change tweet view to original view and view holder pattern
