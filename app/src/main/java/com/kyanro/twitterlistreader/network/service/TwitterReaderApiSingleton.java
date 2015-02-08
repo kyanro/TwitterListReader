@@ -38,7 +38,7 @@ public class TwitterReaderApiSingleton extends TwitterApiClient {
         @GET("/1.1/statuses/user_timeline.json")
         public Observable<List<Tweet>> showTimeline(@Query("user_id") Long user_id, @Query("count") Integer count);
 
-        @GET("/1.1/lists/show.json")
+        @GET("/1.1/lists/statuses.json")
         public Observable<List<Tweet>> showListTweet(@Query(LIST_ID) String list_id, @Query("count") Integer count);
 
         @GET("/1.1/lists/list.json")
