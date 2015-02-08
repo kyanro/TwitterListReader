@@ -20,12 +20,12 @@ import com.kyanro.twitterlistreader.MainActivity;
 import com.kyanro.twitterlistreader.NavigationDrawerFragment;
 import com.kyanro.twitterlistreader.R;
 import com.kyanro.twitterlistreader.fragments.TwitterListViewerFragment;
-import com.kyanro.twitterlistreader.models.Tweet;
 import com.kyanro.twitterlistreader.models.TwitterList;
 import com.kyanro.twitterlistreader.network.service.TwitterReaderApiSingleton;
 import com.kyanro.twitterlistreader.network.service.TwitterReaderApiSingleton.TwitterReaderApiService;
 import com.twitter.sdk.android.Twitter;
 import com.twitter.sdk.android.core.TwitterSession;
+import com.twitter.sdk.android.core.models.Tweet;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -102,7 +102,7 @@ public class TwitterContentsActivity extends ActionBarActivity
 
     private void setDefaultFragment(@NonNull TwitterSession session) {
         TwitterReaderApiService service = TwitterReaderApiSingleton.getTwitterReaderApiService(session);
-        service.show(session.getUserId(), TwitterListViewerFragment.TWEET_COUNT_PER_PAGE)
+        service.showTimeline(session.getUserId(), TwitterListViewerFragment.TWEET_COUNT_PER_PAGE)
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Subscriber<List<Tweet>>() {
                     @Override
@@ -120,7 +120,7 @@ public class TwitterContentsActivity extends ActionBarActivity
                         Log.d("mylog", "onNext in contents");
                         getSupportFragmentManager()
                                 .beginTransaction()
-                                .replace(R.id.container, TwitterListViewerFragment.newInstance(tweets))
+                                .replace(R.id.container, TwitterListViewerFragment.newInstanceForTimeline())
                                 .commit();
                     }
                 });
@@ -176,9 +176,9 @@ public class TwitterContentsActivity extends ActionBarActivity
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         if (!mNavigationDrawerFragment.isDrawerOpen()) {
-            // Only show items in the action bar relevant to this screen
+            // Only showTimeline items in the action bar relevant to this screen
             // if the drawer is not showing. Otherwise, let the drawer
-            // decide what to show in the action bar.
+            // decide what to showTimeline in the action bar.
             getMenuInflater().inflate(R.menu.main, menu);
             restoreActionBar();
             return true;

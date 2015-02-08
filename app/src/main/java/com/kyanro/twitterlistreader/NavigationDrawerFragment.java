@@ -42,7 +42,7 @@ public class NavigationDrawerFragment extends Fragment {
     private static final String STATE_SELECTED_POSITION = "selected_navigation_drawer_position";
 
     /**
-     * Per the design guidelines, you should show the drawer on launch until the user manually
+     * Per the design guidelines, you should showTimeline the drawer on launch until the user manually
      * expands it. This shared preference tracks this.
      */
     private static final String PREF_USER_LEARNED_DRAWER = "navigation_drawer_learned";
@@ -285,7 +285,7 @@ public class NavigationDrawerFragment extends Fragment {
     }
 
     /**
-     * Per the navigation drawer design guidelines, updates the action bar to show the global app
+     * Per the navigation drawer design guidelines, updates the action bar to showTimeline the global app
      * 'context', rather than just what's in the current screen.
      */
     private void showGlobalContextActionBar() {

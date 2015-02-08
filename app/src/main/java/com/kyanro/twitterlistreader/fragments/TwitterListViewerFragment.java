@@ -16,50 +16,87 @@ import android.widget.ListView;
 
 import com.kyanro.twitterlistreader.R;
 import com.kyanro.twitterlistreader.activities.TwitterLoginActivity;
-import com.kyanro.twitterlistreader.models.Tweet;
+import com.kyanro.twitterlistreader.models.TwitterList;
+import com.kyanro.twitterlistreader.network.service.TwitterReaderApiSingleton;
+import com.kyanro.twitterlistreader.network.service.TwitterReaderApiSingleton.TwitterReaderApiService;
 import com.twitter.sdk.android.Twitter;
 import com.twitter.sdk.android.core.TwitterSession;
+import com.twitter.sdk.android.core.models.Tweet;
 import com.twitter.sdk.android.tweetui.CompactTweetView;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import butterknife.ButterKnife;
 import butterknife.InjectView;
+import rx.Observable;
+import rx.android.schedulers.AndroidSchedulers;
 
 /**
  * A simple {@link Fragment} subclass.
  * Activities that contain this fragment must implement the
  * {@link TwitterListViewerFragment.OnFragmentInteractionListener} interface
  * to handle interaction events.
- * Use the {@link TwitterListViewerFragment#newInstance} factory method to
+ * Use the {@link TwitterListViewerFragment#newInstanceForTimeline} factory method to
  * create an instance of this fragment.
  */
 public class TwitterListViewerFragment extends Fragment {
-    // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
-    private static final String ARG_LIST_ID = "list_id";
     public static final int TWEET_COUNT_PER_PAGE = 20;
-    public static final String TWEETS = "TWEETS";
-
-    // TODO: Rename and change types of parameters
-    private String mListId;
-    private String mParam2;
+    public static final String LIST_TYPE = "LIST_TYPE";
+    public static final String QUERY_MAP = "QUERY_MAP";
 
     private OnFragmentInteractionListener mListener;
     private Activity mActivity;
+    private TwitterReaderApiService mApiService;
+
+    public enum ListType {
+        MY_TIMELINE {
+            @Override
+            public Observable<List<Tweet>> getTweets(
+                    TwitterSession session, TwitterReaderApiService service, HashMap<String, String> queryMap) {
+                return service.showTimeline(session.getUserId(), TWEET_COUNT_PER_PAGE);
+            }
+        },
+        MY_LIST {
+            @Override
+            public Observable<List<Tweet>> getTweets(
+                    TwitterSession session, TwitterReaderApiService service, HashMap<String, String> queryMap) {
+                String list_id_str = queryMap.get(TwitterReaderApiService.LIST_ID);
+                return service.showListTweet(list_id_str, TWEET_COUNT_PER_PAGE);
+            }
+        };
+
+        public abstract Observable<List<Tweet>> getTweets(
+                TwitterSession session, TwitterReaderApiService service, HashMap<String, String> queryMap);
+
+    }
 
     /**
      * Use this factory method to create a new instance of
      * this fragment using the provided parameters.
      *
-     * @param tweets 表示したい tweet のリスト
-     * @return A new instance of fragment TwitterListViewerFragment.
+     * @return A new instance of fragment TwitterListViewerFragment for my timeline.
      */
-    // TODO: 引数確認
-    public static TwitterListViewerFragment newInstance(List<Tweet> tweets) {
+    public static TwitterListViewerFragment newInstanceForTimeline() {
         TwitterListViewerFragment fragment = new TwitterListViewerFragment();
         Bundle b = new Bundle();
-        b.putSerializable(TwitterListViewerFragment.TWEETS, new ArrayList<>(tweets));
+        b.putSerializable(LIST_TYPE, ListType.MY_TIMELINE);
+        fragment.setArguments(b);
+        return fragment;
+    }
+
+    /**
+     * @return A new instance of fragment TwitterListViewerFragment for my list
+     */
+    public static TwitterListViewerFragment newInstanceForMyList(TwitterList twitterList) {
+        TwitterListViewerFragment fragment = new TwitterListViewerFragment();
+        HashMap<String, String> queryMap = new HashMap<>();
+        queryMap.put(TwitterReaderApiService.LIST_ID, twitterList.id_str);
+        Bundle b = new Bundle();
+        b.putSerializable(LIST_TYPE, ListType.MY_LIST);
+        b.putSerializable(QUERY_MAP, queryMap);
+
         fragment.setArguments(b);
         return fragment;
     }
@@ -76,9 +113,6 @@ public class TwitterListViewerFragment extends Fragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        if (getArguments() != null) {
-            mListId = getArguments().getString(ARG_LIST_ID);
-        }
     }
 
     @InjectView(R.id.tweet_listview)
@@ -95,17 +129,25 @@ public class TwitterListViewerFragment extends Fragment {
         mTweetAdapter = new TweetAdapter(mActivity, 0, mTweets);
         mTweetListView.setAdapter(mTweetAdapter);
 
+
         TwitterSession session = Twitter.getSessionManager().getActiveSession();
         if (session == null) {
             mActivity.startActivity(new Intent(mActivity, TwitterLoginActivity.class));
             return null;
         }
 
+        mApiService = TwitterReaderApiSingleton.getTwitterReaderApiService(session);
+
+
         Bundle args = getArguments();
-        if (args != null && args.containsKey(TWEETS)) {
+        if (args != null && args.containsKey(LIST_TYPE)) {
             //noinspection unchecked
-            List<Tweet> tweets = (List<Tweet>) args.getSerializable(TWEETS);
-            mTweetAdapter.addAll(tweets);
+            ListType listType = (ListType) args.getSerializable(LIST_TYPE);
+            HashMap<String, String> queryMap = (HashMap<String, String>) args.getSerializable(QUERY_MAP);
+
+            listType.getTweets(session, mApiService, queryMap)
+                    .observeOn(AndroidSchedulers.mainThread())
+                    .subscribe(mTweetAdapter::addAll);
         }
         return view;
     }

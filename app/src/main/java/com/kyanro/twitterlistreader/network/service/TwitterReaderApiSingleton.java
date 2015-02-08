@@ -1,9 +1,9 @@
 package com.kyanro.twitterlistreader.network.service;
 
-import com.kyanro.twitterlistreader.models.Tweet;
 import com.kyanro.twitterlistreader.models.TwitterList;
 import com.twitter.sdk.android.core.Session;
 import com.twitter.sdk.android.core.TwitterApiClient;
+import com.twitter.sdk.android.core.models.Tweet;
 
 import java.util.List;
 
@@ -32,8 +32,14 @@ public class TwitterReaderApiSingleton extends TwitterApiClient {
     }
 
     public interface TwitterReaderApiService {
+
+        public static final String LIST_ID = "list_id";
+
         @GET("/1.1/statuses/user_timeline.json")
-        public Observable<List<Tweet>> show(@Query("user_id") Long user_id, @Query("count") Integer count);
+        public Observable<List<Tweet>> showTimeline(@Query("user_id") Long user_id, @Query("count") Integer count);
+
+        @GET("/1.1/lists/show.json")
+        public Observable<List<Tweet>> showListTweet(@Query(LIST_ID) String list_id, @Query("count") Integer count);
 
         @GET("/1.1/lists/list.json")
         public Observable<List<TwitterList>> list(@Query("user_id") Long user_id);
