@@ -7,6 +7,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v4.app.Fragment;
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -119,6 +120,8 @@ public class TwitterListViewerFragment extends Fragment {
     @InjectView(R.id.tweet_listview)
     ListView mTweetListView;
 
+    @InjectView(R.id.container_sl)
+    SwipeRefreshLayout mContainerSwipeRefresh;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -139,6 +142,8 @@ public class TwitterListViewerFragment extends Fragment {
 
         mApiService = TwitterReaderApiSingleton.getTwitterReaderApiService(session);
 
+        Observable<Object> refreshStream = Observable.create(
+                subscriber -> mContainerSwipeRefresh.setOnRefreshListener(() -> subscriber.onNext(1)));
 
         Bundle args = getArguments();
         if (args != null && args.containsKey(LIST_TYPE)) {
@@ -146,11 +151,20 @@ public class TwitterListViewerFragment extends Fragment {
             ListType listType = (ListType) args.getSerializable(LIST_TYPE);
             HashMap<String, String> queryMap = (HashMap<String, String>) args.getSerializable(QUERY_MAP);
 
-            listType.getTweets(session, mApiService, queryMap)
+            refreshStream.startWith(0)
+                    .flatMap(trigger -> listType.getTweets(session, mApiService, queryMap))
                     .observeOn(AndroidSchedulers.mainThread())
-                    .subscribe(mTweetAdapter::addAll,
-                            throwable -> Toast.makeText(mActivity, throwable.getMessage(), Toast.LENGTH_LONG).show());
+                    .subscribe(
+                            (tweets) -> {
+                                mContainerSwipeRefresh.setRefreshing(false);
+                                mTweetAdapter.clear();
+                                mTweetAdapter.addAll(tweets);
+                            },
+                            throwable -> Toast.makeText(mActivity, throwable.getMessage(), Toast.LENGTH_LONG).show(),
+                            () -> Log.d("mylog", "refresh stream compleat. maybe not called")
+                    );
         }
+
         return view;
     }
 
