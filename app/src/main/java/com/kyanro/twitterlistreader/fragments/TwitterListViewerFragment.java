@@ -151,17 +151,27 @@ public class TwitterListViewerFragment extends Fragment {
             ListType listType = (ListType) args.getSerializable(LIST_TYPE);
             HashMap<String, String> queryMap = (HashMap<String, String>) args.getSerializable(QUERY_MAP);
 
+            // 更新処理を設定
             refreshStream.startWith(0)
-                    .flatMap(trigger -> listType.getTweets(session, mApiService, queryMap))
+                    .flatMap(trigger -> listType.getTweets(session, mApiService, queryMap)
+                            .observeOn(AndroidSchedulers.mainThread())
+                            .doOnEach(o -> mContainerSwipeRefresh.setRefreshing(false)))
+                    .onErrorResumeNext(throwable -> {
+                        Toast.makeText(mActivity, throwable.getMessage(), Toast.LENGTH_LONG).show();
+                        return Observable.never();
+                    })
                     .observeOn(AndroidSchedulers.mainThread())
                     .subscribe(
                             (tweets) -> {
-                                mContainerSwipeRefresh.setRefreshing(false);
                                 mTweetAdapter.clear();
                                 mTweetAdapter.addAll(tweets);
                             },
-                            throwable -> Toast.makeText(mActivity, throwable.getMessage(), Toast.LENGTH_LONG).show(),
+                            throwable -> {
+                                Log.d("mylog", "error:" + throwable.getMessage());
+                                Toast.makeText(mActivity, throwable.getMessage(), Toast.LENGTH_LONG).show();
+                            },
                             () -> Log.d("mylog", "refresh stream compleat. maybe not called")
+
                     );
         }
 
