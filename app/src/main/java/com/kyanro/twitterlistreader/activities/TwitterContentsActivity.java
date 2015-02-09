@@ -24,7 +24,6 @@ import com.kyanro.twitterlistreader.network.service.TwitterReaderApiSingleton;
 import com.kyanro.twitterlistreader.network.service.TwitterReaderApiSingleton.TwitterReaderApiService;
 import com.twitter.sdk.android.Twitter;
 import com.twitter.sdk.android.core.TwitterSession;
-import com.twitter.sdk.android.core.models.Tweet;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -64,7 +63,10 @@ public class TwitterContentsActivity extends ActionBarActivity
         }
         TwitterReaderApiService service = TwitterReaderApiSingleton.getTwitterReaderApiService(session);
 
-        setDefaultFragment(session);
+        getSupportFragmentManager()
+                .beginTransaction()
+                .replace(R.id.container, TwitterListViewerFragment.newInstanceForTimeline())
+                .commit();
 
         mNavigationDrawerFragment = (NavigationDrawerFragment)
                 getSupportFragmentManager().findFragmentById(R.id.navigation_drawer);
@@ -96,34 +98,6 @@ public class TwitterContentsActivity extends ActionBarActivity
                         mNavigationDrawerFragment.update(mTwitterLists);
                     }
                 });
-
-    }
-
-    private void setDefaultFragment(@NonNull TwitterSession session) {
-        TwitterReaderApiService service = TwitterReaderApiSingleton.getTwitterReaderApiService(session);
-        service.showTimeline(session.getUserId(), TwitterListViewerFragment.TWEET_COUNT_PER_PAGE)
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Subscriber<List<Tweet>>() {
-                    @Override
-                    public void onCompleted() {
-                        Log.d("mylog", "complete");
-                    }
-
-                    @Override
-                    public void onError(Throwable e) {
-                        Log.d("mylog", "error:" + e.getMessage());
-                    }
-
-                    @Override
-                    public void onNext(List<Tweet> tweets) {
-                        Log.d("mylog", "onNext in contents");
-                        getSupportFragmentManager()
-                                .beginTransaction()
-                                .replace(R.id.container, TwitterListViewerFragment.newInstanceForTimeline())
-                                .commit();
-                    }
-                });
-
 
     }
 
