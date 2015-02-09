@@ -56,21 +56,21 @@ public class TwitterListViewerFragment extends Fragment {
         MY_TIMELINE {
             @Override
             public Observable<List<Tweet>> getTweets(
-                    TwitterSession session, TwitterReaderApiService service, HashMap<String, String> queryMap) {
-                return service.showTimeline(session.getUserId(), TWEET_COUNT_PER_PAGE);
+                    TwitterSession session, TwitterReaderApiService service, HashMap<String, String> queryMap, String since_id) {
+                return service.showTimeline(session.getUserId(), TWEET_COUNT_PER_PAGE, since_id);
             }
         },
         MY_LIST {
             @Override
             public Observable<List<Tweet>> getTweets(
-                    TwitterSession session, TwitterReaderApiService service, HashMap<String, String> queryMap) {
+                    TwitterSession session, TwitterReaderApiService service, HashMap<String, String> queryMap, String since_id) {
                 String list_id_str = queryMap.get(TwitterReaderApiService.LIST_ID);
-                return service.showListTweet(list_id_str, TWEET_COUNT_PER_PAGE);
+                return service.showListTweet(list_id_str, TWEET_COUNT_PER_PAGE, since_id);
             }
         };
 
         public abstract Observable<List<Tweet>> getTweets(
-                TwitterSession session, TwitterReaderApiService service, HashMap<String, String> queryMap);
+                TwitterSession session, TwitterReaderApiService service, HashMap<String, String> queryMap, String since_id);
 
     }
 
@@ -153,7 +153,7 @@ public class TwitterListViewerFragment extends Fragment {
 
             // 更新処理を設定
             refreshStream.startWith(0)
-                    .flatMap(trigger -> listType.getTweets(session, mApiService, queryMap)
+                    .flatMap(trigger -> listType.getTweets(session, mApiService, queryMap, null)
                             .observeOn(AndroidSchedulers.mainThread())
                             .doOnEach(o -> mContainerSwipeRefresh.setRefreshing(false)))
                     .onErrorResumeNext(throwable -> {
@@ -171,7 +171,6 @@ public class TwitterListViewerFragment extends Fragment {
                                 Toast.makeText(mActivity, throwable.getMessage(), Toast.LENGTH_LONG).show();
                             },
                             () -> Log.d("mylog", "refresh stream compleat. maybe not called")
-
                     );
         }
 
