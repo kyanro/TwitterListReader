@@ -4,7 +4,7 @@
     + [ ] cache my twitter list
         + [ ] update cache
 + [ ] hide actionbar on scroll
-+ [ ] add swipe refresh
++ [x] add swipe refresh
 + [ ] add reload on bottom(use Subject?)
 + [ ] add ad
 + [x] change v4 drawer toggle to v7 drawer toggle
