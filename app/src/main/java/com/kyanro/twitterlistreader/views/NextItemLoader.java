@@ -1,5 +1,6 @@
 package com.kyanro.twitterlistreader.views;
 
+import android.util.Log;
 import android.widget.AbsListView;
 import android.widget.AbsListView.OnScrollListener;
 
@@ -17,6 +18,10 @@ public abstract class NextItemLoader implements OnScrollListener {
 
     @Override
     public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
+        Log.d("mylog", "first:" + firstVisibleItem + " visible:" + visibleItemCount + " total:" + totalItemCount);
+        if (totalItemCount == 0) {
+            return;
+        }
         if (!mLoaderEnabled) {
             return;
         }

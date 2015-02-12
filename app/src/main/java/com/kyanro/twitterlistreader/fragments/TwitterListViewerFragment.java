@@ -21,6 +21,7 @@ import com.kyanro.twitterlistreader.activities.TwitterLoginActivity;
 import com.kyanro.twitterlistreader.models.TwitterList;
 import com.kyanro.twitterlistreader.network.service.TwitterReaderApiSingleton;
 import com.kyanro.twitterlistreader.network.service.TwitterReaderApiSingleton.TwitterReaderApiService;
+import com.kyanro.twitterlistreader.views.NextItemLoader;
 import com.twitter.sdk.android.Twitter;
 import com.twitter.sdk.android.core.TwitterSession;
 import com.twitter.sdk.android.core.models.Tweet;
@@ -132,6 +133,12 @@ public class TwitterListViewerFragment extends Fragment {
 
         mTweetAdapter = new TweetAdapter(mActivity, 0, mTweets);
         mTweetListView.setAdapter(mTweetAdapter);
+        mTweetListView.setOnScrollListener(new NextItemLoader() {
+            @Override
+            public void onScrollEnd() {
+                Log.d("mylog", "check scroll end");
+            }
+        });
 
 
         TwitterSession session = Twitter.getSessionManager().getActiveSession();
