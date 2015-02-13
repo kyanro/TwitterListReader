@@ -9,7 +9,9 @@ import android.widget.AbsListView.OnScrollListener;
  */
 public abstract class NextItemLoader implements OnScrollListener {
 
-    private boolean mLoaderEnabled = true;
+    private boolean mLoading = true;
+
+    private int mPreviousTotalItemCount;
 
     @Override
     public void onScrollStateChanged(AbsListView view, int scrollState) {
@@ -19,21 +21,27 @@ public abstract class NextItemLoader implements OnScrollListener {
     @Override
     public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
         Log.d("mylog", "first:" + firstVisibleItem + " visible:" + visibleItemCount + " total:" + totalItemCount);
-        if (totalItemCount == 0) {
-            return;
-        }
-        if (!mLoaderEnabled) {
-            return;
+        if (totalItemCount < mPreviousTotalItemCount) {
+            mPreviousTotalItemCount = totalItemCount;
+            // 更新等でリストのアイテムが空になった場合
+            if (totalItemCount == 0) {
+                mLoading = true;
+            }
         }
 
-        if (firstVisibleItem + visibleItemCount >= totalItemCount) {
-            mLoaderEnabled = false;
+        if (mLoading) {
+            // load 完了
+            if (totalItemCount > mPreviousTotalItemCount) {
+                mLoading = false;
+                mPreviousTotalItemCount = totalItemCount;
+            }
+        }
+
+        if (!mLoading &&
+                (firstVisibleItem + visibleItemCount) >= totalItemCount) {
+            mLoading = true;
             onScrollEnd();
         }
-    }
-
-    public void loaderEnabled(boolean enabled) {
-        mLoaderEnabled = enabled;
     }
 
     public abstract void onScrollEnd();
