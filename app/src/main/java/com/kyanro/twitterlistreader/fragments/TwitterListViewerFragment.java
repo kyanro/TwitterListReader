@@ -14,6 +14,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
+import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import com.kyanro.twitterlistreader.R;
@@ -145,6 +146,9 @@ public class TwitterListViewerFragment extends Fragment {
     @InjectView(R.id.container_sl)
     SwipeRefreshLayout mContainerSwipeRefresh;
 
+    @InjectView(R.id.load_older_tweets_progressbar)
+    ProgressBar mLoadOlderTweetsProgress;
+
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
@@ -190,9 +194,16 @@ public class TwitterListViewerFragment extends Fragment {
 
         // 更新処理を設定
         refreshStream.startWith(0)
-                .flatMap(trigger -> listType.getNewerTweets(session, mApiService, queryMap, null)
-                        .observeOn(AndroidSchedulers.mainThread())
-                        .doOnEach(o -> mContainerSwipeRefresh.setRefreshing(false)))
+                .flatMap(trigger -> {
+                    String sinceId = null;
+                    if (!mTweets.isEmpty()) {
+                        sinceId = mTweets.get(0).idStr;
+                    }
+                    Log.d("mylog", "sinceId:" + sinceId);
+                    return listType.getNewerTweets(session, mApiService, queryMap, sinceId)
+                            .observeOn(AndroidSchedulers.mainThread())
+                            .doOnEach(o -> mContainerSwipeRefresh.setRefreshing(false));
+                })
                 .onErrorResumeNext(throwable -> {
                     Toast.makeText(mActivity, throwable.getMessage(), Toast.LENGTH_LONG).show();
                     return Observable.never();
@@ -200,8 +211,7 @@ public class TwitterListViewerFragment extends Fragment {
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(
                         (tweets) -> {
-                            mTweetAdapter.clear();
-                            mTweetAdapter.addAll(tweets);
+                            mTweetAdapter.addAll(0, tweets);
                         },
                         throwable -> {
                             Log.d("mylog", "error:" + throwable.getMessage());
@@ -212,19 +222,23 @@ public class TwitterListViewerFragment extends Fragment {
 
         BehaviorSubject<Integer> loaderSubject = BehaviorSubject.create();
         // 追加読み込み処理を設定
-        NextPageLoader pageLoader = new NextPageLoader(1, TWEET_COUNT_PER_PAGE) {
+        mTweetListView.setOnScrollListener(new NextPageLoader(1, TWEET_COUNT_PER_PAGE) {
             @Override
             public void onNextPage(int nextPage) {
+                Log.d("mylog", "nexPage:" + nextPage);
                 loaderSubject.onNext(nextPage);
             }
-        };
+        });
 
         loaderSubject
                 .flatMap(integer -> {
+                    mLoadOlderTweetsProgress.setVisibility(View.VISIBLE);
                     String maxId = "0";
                     if (!mTweets.isEmpty()) {
-                        maxId = mTweets.get(0).idStr;
+                        long maxIdInt = mTweets.get(mTweets.size() - 1).id - 1;
+                        maxId = String.valueOf(maxIdInt);
                     }
+                    Log.d("mylog", "maxId:" + maxId);
                     return listType.getOlderTweets(session, mApiService, queryMap, maxId);
                 })
                 .onErrorResumeNext(throwable -> {
@@ -233,7 +247,10 @@ public class TwitterListViewerFragment extends Fragment {
                 })
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(
-                        mTweetAdapter::addAll,
+                        (tweets) -> {
+                            mLoadOlderTweetsProgress.setVisibility(View.GONE);
+                            mTweetAdapter.addAll(tweets);
+                        },
                         throwable -> {
                             Log.d("mylog", "error:" + throwable.getMessage());
                             Toast.makeText(mActivity, throwable.getMessage(), Toast.LENGTH_LONG).show();
@@ -301,8 +318,11 @@ public class TwitterListViewerFragment extends Fragment {
     }
 
     private static class TweetAdapter extends ArrayAdapter<Tweet> {
+        private final List<Tweet> tweets;
+
         public TweetAdapter(Context context, int resource, List<Tweet> tweets) {
             super(context, resource, tweets);
+            this.tweets = tweets;
         }
 
         @Override
@@ -311,6 +331,11 @@ public class TwitterListViewerFragment extends Fragment {
             Tweet tweet = getItem(position);
             Log.d("mylog", "tweet:" + tweet.text);
             return new CompactTweetView(getContext(), tweet);
+        }
+
+        public void addAll(int index, List<Tweet> tweets) {
+            this.tweets.addAll(index, tweets);
+            notifyDataSetChanged();
         }
     }
 
