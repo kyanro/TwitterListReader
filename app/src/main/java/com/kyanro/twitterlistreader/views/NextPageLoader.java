@@ -13,17 +13,16 @@ public abstract class NextPageLoader implements OnScrollListener {
     private boolean mLoading = true;
     private final int mInitialPage;
     private int mPageSize;
-    
+
     private int mPreviousTotalItemCount;
 
     /**
-     *  
-     * @param mInitialPage 基本的に 1から。
-     * @param mPageSize 1回あたりに読み込むアイテム数
+     * @param initialPage 基本的に 1から。
+     * @param pageSize    1回あたりに読み込むアイテム数
      */
-    protected NextPageLoader(int mInitialPage, int mPageSize) {
-        this.mInitialPage = mInitialPage;
-        this.mPageSize = mPageSize;
+    protected NextPageLoader(int initialPage, int pageSize) {
+        this.mInitialPage = initialPage;
+        this.mPageSize = pageSize;
     }
 
     @Override
