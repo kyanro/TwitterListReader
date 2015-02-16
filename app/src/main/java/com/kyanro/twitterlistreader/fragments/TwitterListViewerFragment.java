@@ -35,6 +35,7 @@ import butterknife.ButterKnife;
 import butterknife.InjectView;
 import rx.Observable;
 import rx.android.schedulers.AndroidSchedulers;
+import rx.subjects.BehaviorSubject;
 
 /**
  * A simple {@link Fragment} subclass.
@@ -60,6 +61,10 @@ public class TwitterListViewerFragment extends Fragment {
                     TwitterSession session, TwitterReaderApiService service, HashMap<String, String> queryMap, String since_id) {
                 return service.showNewerTimeline(session.getUserId(), TWEET_COUNT_PER_PAGE, since_id);
             }
+
+            @Override
+            public Observable<List<Tweet>> getOlderTweets(TwitterSession session, TwitterReaderApiService service, HashMap<String, String> queryMap, String max_id) {
+                return service.showOlderTimeline(session.getUserId(), TWEET_COUNT_PER_PAGE, max_id);
             }
         },
         MY_LIST {
@@ -69,6 +74,11 @@ public class TwitterListViewerFragment extends Fragment {
                 String list_id_str = queryMap.get(TwitterReaderApiService.LIST_ID);
                 return service.showNewerListTweet(list_id_str, TWEET_COUNT_PER_PAGE, since_id);
             }
+
+            @Override
+            public Observable<List<Tweet>> getOlderTweets(TwitterSession session, TwitterReaderApiService service, HashMap<String, String> queryMap, String max_id) {
+                String list_id_str = queryMap.get(TwitterReaderApiService.LIST_ID);
+                return service.showOlderListTweet(list_id_str, TWEET_COUNT_PER_PAGE, max_id);
             }
         };
 
@@ -77,6 +87,12 @@ public class TwitterListViewerFragment extends Fragment {
          */
         public abstract Observable<List<Tweet>> getNewerTweets(
                 TwitterSession session, TwitterReaderApiService service, HashMap<String, String> queryMap, String since_id);
+
+        /**
+         * 古いつぶやき追加読み込み
+         */
+        public abstract Observable<List<Tweet>> getOlderTweets(
+                TwitterSession session, TwitterReaderApiService service, HashMap<String, String> queryMap, String max_id);
 
     }
 
@@ -194,6 +210,36 @@ public class TwitterListViewerFragment extends Fragment {
                         () -> Log.d("mylog", "refresh stream compleat. maybe not called")
                 );
 
+        BehaviorSubject<Integer> loaderSubject = BehaviorSubject.create();
+        // 追加読み込み処理を設定
+        NextPageLoader pageLoader = new NextPageLoader(1, TWEET_COUNT_PER_PAGE) {
+            @Override
+            public void onNextPage(int nextPage) {
+                loaderSubject.onNext(nextPage);
+            }
+        };
+
+        loaderSubject
+                .flatMap(integer -> {
+                    String maxId = "0";
+                    if (!mTweets.isEmpty()) {
+                        maxId = mTweets.get(0).idStr;
+                    }
+                    return listType.getOlderTweets(session, mApiService, queryMap, maxId);
+                })
+                .onErrorResumeNext(throwable -> {
+                    Toast.makeText(mActivity, throwable.getMessage(), Toast.LENGTH_LONG).show();
+                    return Observable.never();
+                })
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(
+                        mTweetAdapter::addAll,
+                        throwable -> {
+                            Log.d("mylog", "error:" + throwable.getMessage());
+                            Toast.makeText(mActivity, throwable.getMessage(), Toast.LENGTH_LONG).show();
+                        },
+                        () -> Log.d("mylog", "loaderSubject compleat. maybe not called")
+                );
     }
 
     // TODO: Rename method, update argument and hook method into UI event

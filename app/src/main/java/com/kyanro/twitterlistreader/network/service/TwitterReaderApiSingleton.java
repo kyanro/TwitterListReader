@@ -43,16 +43,23 @@ public class TwitterReaderApiSingleton extends TwitterApiClient {
         @GET("/1.1/statuses/user_timeline.json")
         public Observable<List<Tweet>> showNewerTimeline(@Query("user_id") Long user_id, @Query("count") Integer count, @Query("since_id") String since_id);
 
+        /**
+         * タイムラインの古いつぶやき追加読み込み
+         */
         @GET("/1.1/statuses/user_timeline.json")
-        public Observable<List<Tweet>> showTimeline(@Query("user_id") Long user_id, @Query("count") Integer count, @Query("since_id") String since_id);
+        public Observable<List<Tweet>> showOlderTimeline(@Query("user_id") Long user_id, @Query("count") Integer count, @Query("max_id") String max_id);
+
         /**
          * リストの新しいつぶやき読み込み
          */
         @GET("/1.1/lists/statuses.json")
         public Observable<List<Tweet>> showNewerListTweet(@Query(LIST_ID) String list_id, @Query("count") Integer count, @Query("since_id") String since_id);
 
+        /**
+         * リストの古いつぶやき追加読み込み
+         */
         @GET("/1.1/lists/statuses.json")
-        public Observable<List<Tweet>> showListTweet(@Query(LIST_ID) String list_id, @Query("count") Integer count, @Query("since_id") String since_id);
+        public Observable<List<Tweet>> showOlderListTweet(@Query(LIST_ID) String list_id, @Query("count") Integer count, @Query("max_id") String since_id);
 
         @GET("/1.1/lists/list.json")
         public Observable<List<TwitterList>> list(@Query("user_id") Long user_id);
