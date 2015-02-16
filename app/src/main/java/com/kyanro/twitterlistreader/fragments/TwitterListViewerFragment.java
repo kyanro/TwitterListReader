@@ -56,21 +56,26 @@ public class TwitterListViewerFragment extends Fragment {
     public enum ListType {
         MY_TIMELINE {
             @Override
-            public Observable<List<Tweet>> getTweets(
+            public Observable<List<Tweet>> getNewerTweets(
                     TwitterSession session, TwitterReaderApiService service, HashMap<String, String> queryMap, String since_id) {
-                return service.showTimeline(session.getUserId(), TWEET_COUNT_PER_PAGE, since_id);
+                return service.showNewerTimeline(session.getUserId(), TWEET_COUNT_PER_PAGE, since_id);
+            }
             }
         },
         MY_LIST {
             @Override
-            public Observable<List<Tweet>> getTweets(
+            public Observable<List<Tweet>> getNewerTweets(
                     TwitterSession session, TwitterReaderApiService service, HashMap<String, String> queryMap, String since_id) {
                 String list_id_str = queryMap.get(TwitterReaderApiService.LIST_ID);
-                return service.showListTweet(list_id_str, TWEET_COUNT_PER_PAGE, since_id);
+                return service.showNewerListTweet(list_id_str, TWEET_COUNT_PER_PAGE, since_id);
+            }
             }
         };
 
-        public abstract Observable<List<Tweet>> getTweets(
+        /**
+         * 新しいつぶやき読み込み
+         */
+        public abstract Observable<List<Tweet>> getNewerTweets(
                 TwitterSession session, TwitterReaderApiService service, HashMap<String, String> queryMap, String since_id);
 
     }
@@ -143,41 +148,52 @@ public class TwitterListViewerFragment extends Fragment {
 
         mApiService = TwitterReaderApiSingleton.getTwitterReaderApiService(session);
 
+        setupStreams(session);
+
+        return view;
+    }
+
+    private void setupStreams(TwitterSession session) {
         Observable<Object> refreshStream = Observable.create(
                 subscriber -> mContainerSwipeRefresh.setOnRefreshListener(() -> subscriber.onNext(1)));
 
         Bundle args = getArguments();
-        if (args != null && args.containsKey(LIST_TYPE)) {
-            //noinspection unchecked
-            ListType listType = (ListType) args.getSerializable(LIST_TYPE);
-            HashMap<String, String> queryMap = (HashMap<String, String>) args.getSerializable(QUERY_MAP);
-
-            // 更新処理を設定
-            refreshStream.startWith(0)
-                    .flatMap(trigger -> listType.getTweets(session, mApiService, queryMap, null)
-                            .observeOn(AndroidSchedulers.mainThread())
-                            .doOnEach(o -> mContainerSwipeRefresh.setRefreshing(false)))
-                    .onErrorResumeNext(throwable -> {
-                        Toast.makeText(mActivity, throwable.getMessage(), Toast.LENGTH_LONG).show();
-                        return Observable.never();
-                    })
-                    .observeOn(AndroidSchedulers.mainThread())
-                    .subscribe(
-                            (tweets) -> {
-                                mTweetAdapter.clear();
-                                mTweetAdapter.addAll(tweets);
-                            },
-                            throwable -> {
-                                Log.d("mylog", "error:" + throwable.getMessage());
-                                Toast.makeText(mActivity, throwable.getMessage(), Toast.LENGTH_LONG).show();
-                            },
-                            () -> Log.d("mylog", "refresh stream compleat. maybe not called")
-                    );
-            
-            // 追加読み込み処理を設定
+        if (args == null || !args.containsKey(LIST_TYPE)) {
+            return;
         }
 
-        return view;
+        //noinspection unchecked
+        ListType listType = (ListType) args.getSerializable(LIST_TYPE);
+
+        /**
+         * @see #newInstanceForMyList(TwitterList)
+         * @see #newInstanceForTimeline()
+         */
+        @SuppressWarnings("unchecked")
+        HashMap<String, String> queryMap = (HashMap<String, String>) args.getSerializable(QUERY_MAP);
+
+        // 更新処理を設定
+        refreshStream.startWith(0)
+                .flatMap(trigger -> listType.getNewerTweets(session, mApiService, queryMap, null)
+                        .observeOn(AndroidSchedulers.mainThread())
+                        .doOnEach(o -> mContainerSwipeRefresh.setRefreshing(false)))
+                .onErrorResumeNext(throwable -> {
+                    Toast.makeText(mActivity, throwable.getMessage(), Toast.LENGTH_LONG).show();
+                    return Observable.never();
+                })
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(
+                        (tweets) -> {
+                            mTweetAdapter.clear();
+                            mTweetAdapter.addAll(tweets);
+                        },
+                        throwable -> {
+                            Log.d("mylog", "error:" + throwable.getMessage());
+                            Toast.makeText(mActivity, throwable.getMessage(), Toast.LENGTH_LONG).show();
+                        },
+                        () -> Log.d("mylog", "refresh stream compleat. maybe not called")
+                );
+
     }
 
     // TODO: Rename method, update argument and hook method into UI event

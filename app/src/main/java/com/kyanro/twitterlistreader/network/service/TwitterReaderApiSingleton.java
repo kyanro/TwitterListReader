@@ -36,12 +36,21 @@ public class TwitterReaderApiSingleton extends TwitterApiClient {
         public static final String LIST_ID = "list_id";
 
         // TODO: 追加読み込み処理用に、max_id を受け取るインターフェースも作らないとダメな気がする
-        
-        // TODO: pagesize 送る
+
+        /**
+         * タイムラインの新しいつぶやき読み込み
+         */
+        @GET("/1.1/statuses/user_timeline.json")
+        public Observable<List<Tweet>> showNewerTimeline(@Query("user_id") Long user_id, @Query("count") Integer count, @Query("since_id") String since_id);
+
         @GET("/1.1/statuses/user_timeline.json")
         public Observable<List<Tweet>> showTimeline(@Query("user_id") Long user_id, @Query("count") Integer count, @Query("since_id") String since_id);
+        /**
+         * リストの新しいつぶやき読み込み
+         */
+        @GET("/1.1/lists/statuses.json")
+        public Observable<List<Tweet>> showNewerListTweet(@Query(LIST_ID) String list_id, @Query("count") Integer count, @Query("since_id") String since_id);
 
-        // TODO: pagesize 送る
         @GET("/1.1/lists/statuses.json")
         public Observable<List<Tweet>> showListTweet(@Query(LIST_ID) String list_id, @Query("count") Integer count, @Query("since_id") String since_id);
 
