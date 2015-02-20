@@ -21,6 +21,7 @@
         </activity>
         <activity android:name=".activities.TwitterContentsActivity"/>
         <activity android:name=".activities.TwitterLoginActivity"/>
+        <activity android:name=".activities.BaseActivity"/>
     </application>
 
 </manifest>
