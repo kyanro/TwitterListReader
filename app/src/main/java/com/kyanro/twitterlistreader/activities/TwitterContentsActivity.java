@@ -7,7 +7,6 @@ import android.support.annotation.NonNull;
 import android.support.v4.app.Fragment;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBar;
-import android.support.v7.app.ActionBarActivity;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -30,10 +29,10 @@ import java.util.List;
 
 import butterknife.ButterKnife;
 import rx.Subscriber;
-import rx.android.schedulers.AndroidSchedulers;
+import rx.android.lifecycle.LifecycleObservable;
 
 
-public class TwitterContentsActivity extends ActionBarActivity
+public class TwitterContentsActivity extends BaseActivity
         implements NavigationDrawerFragment.NavigationDrawerCallbacks {
 
     /**
@@ -78,9 +77,8 @@ public class TwitterContentsActivity extends ActionBarActivity
                 (DrawerLayout) findViewById(R.id.drawer_layout));
 
         // update drawer list. TODO: cache 機能つける
-        service.list(session.getUserId())
-                .take(1)
-                .observeOn(AndroidSchedulers.mainThread())
+        LifecycleObservable.bindActivityLifecycle(lifecycle(), service.list(session.getUserId())
+                .take(1))
                 .subscribe(new Subscriber<List<TwitterList>>() {
                     @Override
                     public void onCompleted() {
