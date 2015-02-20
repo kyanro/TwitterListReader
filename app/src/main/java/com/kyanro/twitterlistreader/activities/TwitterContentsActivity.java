@@ -29,7 +29,6 @@ import java.util.List;
 
 import butterknife.ButterKnife;
 import rx.Subscriber;
-import rx.android.lifecycle.LifecycleObservable;
 
 
 public class TwitterContentsActivity extends BaseActivity
@@ -77,7 +76,7 @@ public class TwitterContentsActivity extends BaseActivity
                 (DrawerLayout) findViewById(R.id.drawer_layout));
 
         // update drawer list. TODO: cache 機能つける
-        LifecycleObservable.bindActivityLifecycle(lifecycle(), service.list(session.getUserId())
+        bind(service.list(session.getUserId())
                 .take(1))
                 .subscribe(new Subscriber<List<TwitterList>>() {
                     @Override
@@ -96,7 +95,6 @@ public class TwitterContentsActivity extends BaseActivity
                         mNavigationDrawerFragment.update(mTwitterLists);
                     }
                 });
-
     }
 
     @Override

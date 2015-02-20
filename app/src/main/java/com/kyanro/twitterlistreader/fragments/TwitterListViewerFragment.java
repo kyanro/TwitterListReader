@@ -46,7 +46,7 @@ import rx.subjects.BehaviorSubject;
  * Use the {@link TwitterListViewerFragment#newInstanceForTimeline} factory method to
  * create an instance of this fragment.
  */
-public class TwitterListViewerFragment extends Fragment {
+public class TwitterListViewerFragment extends BaseFragment {
     public static final int TWEET_COUNT_PER_PAGE = 20;
     public static final String LIST_TYPE = "LIST_TYPE";
     public static final String QUERY_MAP = "QUERY_MAP";
@@ -193,7 +193,7 @@ public class TwitterListViewerFragment extends Fragment {
         HashMap<String, String> queryMap = (HashMap<String, String>) args.getSerializable(QUERY_MAP);
 
         // 更新処理を設定
-        refreshStream.startWith(0)
+        bind(refreshStream.startWith(0)
                 .flatMap(trigger -> {
                     String sinceId = null;
                     if (!mTweets.isEmpty()) {
@@ -207,12 +207,9 @@ public class TwitterListViewerFragment extends Fragment {
                 .onErrorResumeNext(throwable -> {
                     Toast.makeText(mActivity, throwable.getMessage(), Toast.LENGTH_LONG).show();
                     return Observable.never();
-                })
-                .observeOn(AndroidSchedulers.mainThread())
+                }))
                 .subscribe(
-                        (tweets) -> {
-                            mTweetAdapter.addAll(0, tweets);
-                        },
+                        (tweets) -> mTweetAdapter.addAll(0, tweets),
                         throwable -> {
                             Log.d("mylog", "error:" + throwable.getMessage());
                             Toast.makeText(mActivity, throwable.getMessage(), Toast.LENGTH_LONG).show();
@@ -230,7 +227,7 @@ public class TwitterListViewerFragment extends Fragment {
             }
         });
 
-        loaderSubject
+        bind(loaderSubject
                 .flatMap(integer -> {
                     mLoadOlderTweetsProgress.setVisibility(View.VISIBLE);
                     String maxId = "0";
@@ -244,8 +241,7 @@ public class TwitterListViewerFragment extends Fragment {
                 .onErrorResumeNext(throwable -> {
                     Toast.makeText(mActivity, throwable.getMessage(), Toast.LENGTH_LONG).show();
                     return Observable.never();
-                })
-                .observeOn(AndroidSchedulers.mainThread())
+                }))
                 .subscribe(
                         (tweets) -> {
                             mLoadOlderTweetsProgress.setVisibility(View.GONE);
