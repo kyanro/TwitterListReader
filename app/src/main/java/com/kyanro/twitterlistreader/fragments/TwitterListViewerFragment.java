@@ -90,12 +90,15 @@ public class TwitterListViewerFragment extends BaseFragment {
 
         // スクロール方向に値を設定
         int targetPosition;
+        int moveCount;
         if (dy > 0) {
             mScrollSpeed = MAX_SCROLL_SPEED;
-            targetPosition = mLastVisiblePosition + 1;
+            targetPosition = mTweetAdapter.getCount();
+            moveCount = targetPosition - mTweetListView.getLastVisiblePosition();
         } else {
             mScrollSpeed = -MAX_SCROLL_SPEED;
-            targetPosition = mTweetListView.getFirstVisiblePosition() - 1;
+            targetPosition = 0;
+            moveCount = mTweetListView.getFirstVisiblePosition();
         }
 
         // 同じ方向にスクロール中なら何もしない
@@ -106,7 +109,7 @@ public class TwitterListViewerFragment extends BaseFragment {
         }
         Log.d("mydevlog", "exec scroll");
 
-        mTweetListView.smoothScrollToPositionFromTop(targetPosition, 0, 3000);
+        mTweetListView.smoothScrollToPositionFromTop(targetPosition, 0, 1000 * moveCount);
 //        mTweetListView.smoothScrollBy(mScrollSpeed, 10000);
     }
 
