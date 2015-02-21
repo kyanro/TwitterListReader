@@ -51,9 +51,25 @@ public class TwitterListViewerFragment extends BaseFragment {
     public static final String LIST_TYPE = "LIST_TYPE";
     public static final String QUERY_MAP = "QUERY_MAP";
 
+    public static final int TICK_MS = 200;
+
     private OnFragmentInteractionListener mListener;
     private Activity mActivity;
     private TwitterReaderApiService mApiService;
+
+    private int mPosition;
+    public void moveYBy(int dy) {
+        if (dy == 0) { return; }
+
+        if (dy > 0 && mPosition < mTweetAdapter.getCount()) {
+            mPosition++;
+        }
+        if (dy < 0 && mPosition > 0) {
+            mPosition--;
+        }
+
+        mTweetListView.smoothScrollToPosition(mPosition);
+    }
 
     public enum ListType {
         MY_TIMELINE {

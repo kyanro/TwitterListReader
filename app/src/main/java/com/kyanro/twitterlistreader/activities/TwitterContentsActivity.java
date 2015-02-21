@@ -2,6 +2,10 @@ package com.kyanro.twitterlistreader.activities;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v4.app.Fragment;
@@ -26,9 +30,12 @@ import com.twitter.sdk.android.core.TwitterSession;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import butterknife.ButterKnife;
+import rx.Observable;
 import rx.Subscriber;
+import rx.subjects.BehaviorSubject;
 
 
 public class TwitterContentsActivity extends BaseActivity
@@ -46,6 +53,8 @@ public class TwitterContentsActivity extends BaseActivity
 
     @NonNull
     private List<TwitterList> mTwitterLists = new ArrayList<>();
+    private SensorManager mSensorManager;
+    private SensorEventListener mSensorListener;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -97,6 +106,10 @@ public class TwitterContentsActivity extends BaseActivity
                 });
     }
 
+    private static final int MAGNIFICATIONS = 3;
+    private float mBaseY = 3;
+    private float mDyFromBase;
+
     @Override
     protected void onResume() {
         super.onResume();
@@ -105,6 +118,57 @@ public class TwitterContentsActivity extends BaseActivity
             startLoginActivity();
             return;
         }
+
+        // 重力センサーを利用するための準備
+        BehaviorSubject<SensorEvent> SensorSubject = BehaviorSubject.create();
+
+        mSensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
+        Sensor accelerometer = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+
+        mSensorListener = new SensorEventListener() {
+            @Override
+            public void onSensorChanged(SensorEvent event) {
+                SensorSubject.onNext(event);
+            }
+
+            @Override
+            public void onAccuracyChanged(Sensor sensor, int accuracy) {
+                Log.d("mydevlog", "ここくるの？");
+            }
+        };
+
+        mSensorManager.registerListener(mSensorListener, accelerometer, SensorManager.SENSOR_DELAY_UI);
+
+        // 処理
+        bind(SensorSubject
+                .throttleLast(TwitterListViewerFragment.TICK_MS, TimeUnit.MILLISECONDS))
+                .subscribe(event -> {
+//                    float dx = event.values[0];
+                    float dy = event.values[1];
+//                    float dz = event.values[2];
+                    mDyFromBase = dy - mBaseY;
+                    Log.d("mydevlog", "dy:" + dy);
+                });
+
+        bind(Observable.timer(0, TwitterListViewerFragment.TICK_MS, TimeUnit.MILLISECONDS))
+                .subscribe(tick -> scrollByAccelerometer());
+
+    }
+
+    private void scrollByAccelerometer() {
+        Log.d("mydevlog", "scrollByAccelerometer");
+        Fragment f = getSupportFragmentManager().findFragmentById(R.id.container);
+        if (!(f instanceof TwitterListViewerFragment)) {
+            return;
+        }
+        Log.d("mydevlog", "mDyFromBase:" + mDyFromBase);
+        ((TwitterListViewerFragment) f).moveYBy((int) mDyFromBase * MAGNIFICATIONS);
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        mSensorManager.unregisterListener(mSensorListener);
     }
 
     private void startLoginActivity() {
