@@ -51,24 +51,62 @@ public class TwitterListViewerFragment extends BaseFragment {
     public static final String LIST_TYPE = "LIST_TYPE";
     public static final String QUERY_MAP = "QUERY_MAP";
 
-    public static final int TICK_MS = 200;
+    public static final int SCROLL_THRESHOLD_PER_SEC = 200;
+    public static final int TICK_MS = 500;
+    public static final int MAX_SCROLL_SPEED = 1000;
 
     private OnFragmentInteractionListener mListener;
     private Activity mActivity;
     private TwitterReaderApiService mApiService;
 
-    private int mPosition;
+    private int mScrollSpeed;
+    private int mLastScrollPositionY;
+    private int mLastVisiblePosition;
+
     public void moveYBy(int dy) {
-        if (dy == 0) { return; }
-
-        if (dy > 0 && mPosition < mTweetAdapter.getCount()) {
-            mPosition++;
-        }
-        if (dy < 0 && mPosition > 0) {
-            mPosition--;
+        if (mTweetListView.getChildAt(0) == null) {
+            return;
         }
 
-        mTweetListView.smoothScrollToPosition(mPosition);
+        int currentY = mTweetListView.getChildAt(0).getTop();
+        int lastY = mLastScrollPositionY;
+        mLastScrollPositionY = currentY;
+
+        if (dy == 0) {
+            mScrollSpeed = 0;
+            mTweetListView.smoothScrollBy(mScrollSpeed, 0);
+            return;
+        }
+
+        // スクロール状態が変更されたらフラグをたてる
+        boolean scrollStateChanged;
+        if (mScrollSpeed == 0) {
+            scrollStateChanged = true;
+        } else {
+            scrollStateChanged = Math.signum(dy) * Math.signum(mScrollSpeed) < 0;
+        }
+
+        // スクロール方向に値を設定
+        if (dy > 0 && mScrollSpeed < MAX_SCROLL_SPEED) {
+            mScrollSpeed = MAX_SCROLL_SPEED;
+        }
+        if (dy < 0 && mScrollSpeed > -MAX_SCROLL_SPEED) {
+            mScrollSpeed = -MAX_SCROLL_SPEED;
+        }
+
+        // 同じ方向にスクロール中なら何もしない
+        float dScrollY = Math.abs(Math.abs(lastY) - Math.abs(currentY));
+        Log.d("mydevlog", "scroll lastY:" + Math.abs(lastY));
+        Log.d("mydevlog", "scroll currentY:" + Math.abs(currentY));
+        Log.d("mydevlog", "scroll dScrollY:" + dScrollY);
+        if (dScrollY < SCROLL_THRESHOLD_PER_SEC * TICK_MS / 1000 && !scrollStateChanged) {
+            Log.d("mydevlog", "skip scroll:" + dScrollY);
+            return;
+        }
+        Log.d("mydevlog", "exec scroll");
+
+        mTweetListView.smoothScrollToPositionFromTop(mTweetListView.getLastVisiblePosition() + 100, 0, 10000);
+//        mTweetListView.smoothScrollBy(mScrollSpeed, 10000);
     }
 
     public enum ListType {
