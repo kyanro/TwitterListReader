@@ -52,7 +52,7 @@ public class TwitterListViewerFragment extends BaseFragment {
     public static final String QUERY_MAP = "QUERY_MAP";
 
     public static final int SCROLL_THRESHOLD_PER_SEC = 200;
-    public static final int TICK_MS = 500;
+    public static final int TICK_MS = 100;
     public static final int MAX_SCROLL_SPEED = 1000;
 
     private OnFragmentInteractionListener mListener;
@@ -71,6 +71,8 @@ public class TwitterListViewerFragment extends BaseFragment {
         int currentY = mTweetListView.getChildAt(0).getTop();
         int lastY = mLastScrollPositionY;
         mLastScrollPositionY = currentY;
+        int previousLastVisiblePosition = mLastVisiblePosition;
+        mLastVisiblePosition = mTweetListView.getLastVisiblePosition();
 
         if (dy == 0) {
             mScrollSpeed = 0;
@@ -87,25 +89,24 @@ public class TwitterListViewerFragment extends BaseFragment {
         }
 
         // スクロール方向に値を設定
-        if (dy > 0 && mScrollSpeed < MAX_SCROLL_SPEED) {
+        int targetPosition;
+        if (dy > 0) {
             mScrollSpeed = MAX_SCROLL_SPEED;
-        }
-        if (dy < 0 && mScrollSpeed > -MAX_SCROLL_SPEED) {
+            targetPosition = mLastVisiblePosition + 1;
+        } else {
             mScrollSpeed = -MAX_SCROLL_SPEED;
+            targetPosition = mTweetListView.getFirstVisiblePosition() - 1;
         }
 
         // 同じ方向にスクロール中なら何もしない
         float dScrollY = Math.abs(Math.abs(lastY) - Math.abs(currentY));
-        Log.d("mydevlog", "scroll lastY:" + Math.abs(lastY));
-        Log.d("mydevlog", "scroll currentY:" + Math.abs(currentY));
-        Log.d("mydevlog", "scroll dScrollY:" + dScrollY);
-        if (dScrollY < SCROLL_THRESHOLD_PER_SEC * TICK_MS / 1000 && !scrollStateChanged) {
+        if (dScrollY != 0 && !scrollStateChanged) {
             Log.d("mydevlog", "skip scroll:" + dScrollY);
             return;
         }
         Log.d("mydevlog", "exec scroll");
 
-        mTweetListView.smoothScrollToPositionFromTop(mTweetListView.getLastVisiblePosition() + 100, 0, 10000);
+        mTweetListView.smoothScrollToPositionFromTop(targetPosition, 0, 3000);
 //        mTweetListView.smoothScrollBy(mScrollSpeed, 10000);
     }
 
