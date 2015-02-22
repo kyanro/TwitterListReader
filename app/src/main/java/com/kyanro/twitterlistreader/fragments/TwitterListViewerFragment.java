@@ -51,9 +51,50 @@ public class TwitterListViewerFragment extends BaseFragment {
     public static final String LIST_TYPE = "LIST_TYPE";
     public static final String QUERY_MAP = "QUERY_MAP";
 
+    public static final int TICK_MS = 100;
+
     private OnFragmentInteractionListener mListener;
     private Activity mActivity;
     private TwitterReaderApiService mApiService;
+
+    private int mScrollState = 0;
+
+    public void moveYBy(int dy) {
+        if (mTweetListView.getChildAt(0) == null) {
+            return;
+        }
+
+        if (dy == 0) {
+            mScrollState = 0;
+            mTweetListView.smoothScrollBy(0, 0);
+            return;
+        }
+
+        // スクロール状態が変更されたらフラグをたてる
+        boolean scrollStateChanged = mScrollState == 0 | Math.signum(dy) * mScrollState < 0;
+
+        // スクロール方向に値を設定
+        int targetPosition;
+        int moveCount;
+        if (dy > 0) {
+            mScrollState = 1;
+            targetPosition = mTweetAdapter.getCount();
+            moveCount = targetPosition - mTweetListView.getLastVisiblePosition();
+        } else {
+            mScrollState = -1;
+            targetPosition = 0;
+            moveCount = mTweetListView.getFirstVisiblePosition();
+        }
+
+        // 同じ方向にスクロール中なら何もしない
+        if (!scrollStateChanged) {
+            Log.d("mydevlog", "skip scroll:");
+            return;
+        }
+        Log.d("mydevlog", "exec scroll");
+
+        mTweetListView.smoothScrollToPositionFromTop(targetPosition, 0, 700 * moveCount);
+    }
 
     public enum ListType {
         MY_TIMELINE {
