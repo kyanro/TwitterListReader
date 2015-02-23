@@ -13,4 +13,9 @@ public class TwitterList implements Serializable {
     public String uri;
     public String subscriber_count;
     public String member_count;
+    
+    public String getName() {
+        return name;
+    }
+        
 }
